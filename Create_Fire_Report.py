@@ -1,3 +1,5 @@
+print("Starting Script........")
+
 # Libraries
 import requests
 import pandas as pd
@@ -7,3 +9,5 @@ import pandas as pd
 snpp_url = 'https://firms.modaps.eosdis.nasa.gov/data/active_fire/suomi-npp-viirs-c2/csv/SUOMI_VIIRS_C2_Global_7d.csv'
 
 snpp_df = pd.read_csv(snpp_url)
+
+print("Script Complete.........")
