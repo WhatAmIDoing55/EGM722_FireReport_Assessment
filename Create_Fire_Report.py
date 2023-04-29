@@ -26,9 +26,16 @@ activeFires = gpd.GeoDataFrame(snpp_df[['acq_date', 'bright_ti4']], # use the cs
                             crs='epsg:4326') # set the CRS using a text representation of the EPSG code for WGS84 lat/lon
 print(activeFires.head()) # print the head of the new activeFires geopandas dataframe to show it worked correctly
 
+# Reproject the Fire data from WGS 84 to UTM 36 North
+activeFires_UTM  = activeFires.to_crs({'init': 'epsg:32636'})
+
+# Save activeFires_UTM as a shapefile
+activeFires_UTM.to_file(driver='ESRI Shapefile', filename='Data/UTM36/ActiveFiresUTM.shp')
+
 """ GIS DATA """
 aoi = gpd.read_file(os.path.abspath('Data/UTM36/AOI.shp'))
 coastline = gpd.read_file(os.path.abspath('Data/UTM36/Island.shp'))
+fires = gpd.read_file(os.path.abspath('Data/UTM36/ActiveFiresUTM.shp'))
 
 """ Create Map"""
 # Work in progress. Copy Pasta exercise 2, to create fire map for cyprus instead of NI.
@@ -40,22 +47,25 @@ def generate_handles(labels, colors, edge='k', alpha=1):
         handles.append(mpatches.Rectangle((0, 0), 1, 1, facecolor=colors[i % lc], edgecolor=edge, alpha=alpha))
     return handles
 
-
 # create a scale bar of length 20 km in the upper right corner of the map
 # adapted this question: https://stackoverflow.com/q/32333870
 # answered by SO user Siyh: https://stackoverflow.com/a/35705477
-def scale_bar(ax, location=(0.92, 0.95)):
+def scale_bar(ax, location=(0.5, 0.05)):
     x0, x1, y0, y1 = ax.get_extent()
     sbx = x0 + (x1 - x0) * location[0]
     sby = y0 + (y1 - y0) * location[1]
 
+    ax.plot([sbx, sbx - 50000], [sby, sby], color='k', linewidth=9, transform=ax.projection)
+    ax.plot([sbx, sbx - 40000], [sby, sby], color='k', linewidth=9, transform=ax.projection)
+    ax.plot([sbx, sbx - 30000], [sby, sby], color='k', linewidth=9, transform=ax.projection)
     ax.plot([sbx, sbx - 20000], [sby, sby], color='k', linewidth=9, transform=ax.projection)
-    ax.plot([sbx, sbx - 10000], [sby, sby], color='k', linewidth=6, transform=ax.projection)
-    ax.plot([sbx-10000, sbx - 20000], [sby, sby], color='w', linewidth=6, transform=ax.projection)
+    ax.plot([sbx, sbx - 10000], [sby, sby], color='k', linewidth=9, transform=ax.projection)
+    ax.plot([sbx - 40000, sbx - 30000], [sby, sby], color='w', linewidth=6, transform=ax.projection)
+    ax.plot([sbx - 20000, sbx - 10000], [sby, sby], color='w', linewidth=6, transform=ax.projection)
 
-    ax.text(sbx, sby-4500, '20 km', transform=ax.projection, fontsize=8)
-    ax.text(sbx-12500, sby-4500, '10 km', transform=ax.projection, fontsize=8)
-    ax.text(sbx-24500, sby-4500, '0 km', transform=ax.projection, fontsize=8)
+    ax.text(sbx, sby-6000, '50 km', transform=ax.projection, fontsize=8)
+    ax.text(sbx - 55000, sby - 6000, '0 km', transform=ax.projection, fontsize=8)
+
 
 
 # load the datasets
@@ -70,9 +80,10 @@ myCRS = ccrs.epsg(32636)  # create a Universal Transverse Mercator reference sys
 ax = plt.axes(projection=myCRS)  # finally, create an axes object in the figure, using a UTM projection,
 # where we can actually plot our data.
 
+plt.title('Active Fires in Cyprus: Last 7 Days')
+
 # first, we just add the outline of Northern Ireland using cartopy's ShapelyFeature
 outline_feature = ShapelyFeature(aoi['geometry'], myCRS, edgecolor='red', facecolor='w')
-
 
 xmin, ymin, xmax, ymax = aoi.total_bounds
 ax.add_feature(outline_feature)  # add the features we've created to the map.
@@ -101,6 +112,9 @@ feat = ShapelyFeature(coastline['geometry'],  # first argument is the geometry
                           linewidth=1,  # set the outline width to be 1 pt
                           alpha=0.25)  # set the alpha (transparency) to be 0.25 (out of 1)
 ax.add_feature(feat)  # once we have created the feature, we have to add it to the map using ax.add_feature()
+
+#Add Fire Data to Map
+ax.plot(fires.geometry.x, fires.geometry.y, 's', color='red', ms=6, transform=myCRS)
 
 """for ii, name in enumerate(county_names):
     feat = ShapelyFeature(counties.loc[counties['CountyName'] == name, 'geometry'],  # first argument is the geometry
@@ -149,10 +163,10 @@ leg = ax.legend(handles, labels, title='Legend', title_fontsize=12,
                 fontsize=10, loc='upper left', frameon=True, framealpha=1)
 """
 gridlines = ax.gridlines(draw_labels=True,  # draw  labels for the grid lines
-                         xlocs=[-8, -7.5, -7, -6.5, -6, -5.5],  # add longitude lines at 0.5 deg intervals
-                         ylocs=[54, 54.5, 55, 55.5])  # add latitude lines at 0.5 deg intervals
-gridlines.left_labels = False  # turn off the left-side labels
-gridlines.bottom_labels = False  # turn off the bottom labels
+                         xlocs=[32, 32.5, 33, 33.5, 34, 34.5],  # add longitude lines at 0.5 deg intervals
+                         ylocs=[34, 34.5, 35, 35.5, 36])  # add latitude lines at 0.5 deg intervals
+gridlines.left_labels = True  # turn off the left-side labels
+gridlines.bottom_labels = True  # turn off the bottom labels
 
 # add the text labels for the towns
 """
