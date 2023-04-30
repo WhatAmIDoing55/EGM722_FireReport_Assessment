@@ -36,6 +36,7 @@ activeFires_UTM.to_file(driver='ESRI Shapefile', filename='Data/UTM36/ActiveFire
 aoi = gpd.read_file(os.path.abspath('Data/UTM36/AOI.shp'))
 coastline = gpd.read_file(os.path.abspath('Data/UTM36/Island.shp'))
 fires = gpd.read_file(os.path.abspath('Data/UTM36/ActiveFiresUTM.shp'))
+towns = gpd.read_file(os.path.abspath('Data/UTM36/Cyprus_Towns.shp'))
 
 """ Create Map"""
 # Work in progress. Copy Pasta exercise 2, to create fire map for cyprus instead of NI.
@@ -72,18 +73,18 @@ def scale_bar(ax, location=(0.5, 0.05)):
 
 
 # create a figure of size 10x10 (representing the page size in inches)
-myFig = plt.figure(figsize=(10, 10))
+myFig = plt.figure(figsize=(10, 10),facecolor='0.7')
 
 myCRS = ccrs.epsg(32636)  # create a Universal Transverse Mercator reference system to transform our data.
 # epsg32636 is UTM Zone 36 North for Cyprus
 
-ax = plt.axes(projection=myCRS)  # finally, create an axes object in the figure, using a UTM projection,
+ax = plt.axes(projection=myCRS,  facecolor='#effdff')  # finally, create an axes object in the figure, using a UTM projection,
 # where we can actually plot our data.
 
 plt.title('Active Fires in Cyprus: Last 7 Days')
 
 # first, we just add the outline of Northern Ireland using cartopy's ShapelyFeature
-outline_feature = ShapelyFeature(aoi['geometry'], myCRS, edgecolor='red', facecolor='w')
+outline_feature = ShapelyFeature(aoi['geometry'], myCRS, edgecolor='red',facecolor='#effdff')
 
 xmin, ymin, xmax, ymax = aoi.total_bounds
 ax.add_feature(outline_feature)  # add the features we've created to the map.
@@ -112,6 +113,16 @@ feat = ShapelyFeature(coastline['geometry'],  # first argument is the geometry
                           linewidth=1,  # set the outline width to be 1 pt
                           alpha=0.25)  # set the alpha (transparency) to be 0.25 (out of 1)
 ax.add_feature(feat)  # once we have created the feature, we have to add it to the map using ax.add_feature()
+
+
+#Plot Towns
+ax.plot(towns.geometry.x, towns.geometry.y, 's', color='black', ms=4, transform=myCRS)
+
+# add the text labels for the towns
+
+for ind, row in towns.iterrows():  # towns.iterrows() returns the index and row
+    x, y = row.geometry.x, row.geometry.y  # get the x,y location for each town
+    ax.text(x + 1000, y + 1000, row['Name'].title(), fontsize=8, transform=myCRS)  # use plt.text to place a label at x,y
 
 #Add Fire Data to Map
 ax.plot(fires.geometry.x, fires.geometry.y, 's', color='red', ms=6, transform=myCRS)
@@ -168,6 +179,20 @@ gridlines = ax.gridlines(draw_labels=True,  # draw  labels for the grid lines
 gridlines.left_labels = True  # turn off the left-side labels
 gridlines.bottom_labels = True  # turn off the bottom labels
 
+fire_legend = mlines.Line2D([0], [0], color='red', marker='s',
+                          markersize=6, label='Fire',linewidth=0)
+towns_legend = mlines.Line2D([], [], color='black', marker='s',
+                          markersize=4, label='Towns',linewidth=0)
+ax.legend([fire_legend, towns_legend], ['Fires', 'Towns'])
+
+"""
+# ax.legend() takes a list of handles and a list of labels corresponding to the objects you want to add to the legend
+handles = towns
+labels = ['Towns']
+
+leg = ax.legend(handles, labels, title='Legend', title_fontsize=12,
+                fontsize=10, loc='upper left', frameon=True, framealpha=1)
+"""
 # add the text labels for the towns
 """
 #for ind, row in towns.iterrows():  # towns.iterrows() returns the index and row
