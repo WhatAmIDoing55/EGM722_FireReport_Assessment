@@ -3,10 +3,10 @@ import os
 import cartopy.crs as ccrs
 import geopandas as gpd
 import matplotlib.lines as mlines
-import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import pandas as pd
 from cartopy.feature import ShapelyFeature
+import datetime
 
 # import folium #saved for future use
 # import fpdf #saved for future use
@@ -20,7 +20,7 @@ snpp_df = pd.read_csv(snpp_url)  # create the snpp_df dataframe from the url
 snpp_df = snpp_df[(snpp_df['longitude'] >= 32.0) & (snpp_df['longitude'] <= 35.0)]
 snpp_df = snpp_df[(snpp_df['latitude'] >= 34.5) & (snpp_df['latitude'] <= 36.0)]
 
-print(snpp_df.head())  # print the head of the dataset to show it has download correctly
+print(snpp_df.head())  # Print the head of the dataset to show it has been downloaded correctly
 
 """ FIRE GRAPH """
 # Create a graph to show number of fires per day
@@ -37,11 +37,11 @@ activeFires = gpd.GeoDataFrame(snpp_df[['acq_date', 'bright_ti4']],
                                # use the csv data, but only the name/website columns
                                geometry=gpd.points_from_xy(snpp_df['longitude'], snpp_df['latitude']),
                                # set the geometry using points_from_xy
-                               crs='epsg:4326')  # set the CRS using a text representation of the EPSG code for WGS84 lat/lon
+                               crs='epsg:4326')
 print(activeFires.head())  # print the head of the new activeFires geopandas dataframe to show it worked correctly
 
 # Reproject the Fire data from WGS 84 to UTM 36 North
-activeFires_UTM = activeFires.to_crs({'init': 'epsg:32636'})
+activeFires_UTM = activeFires.to_crs('epsg:32636')
 
 # Save activeFires_UTM as a shapefile
 activeFires_UTM.to_file(driver='ESRI Shapefile', filename='Data/UTM36/ActiveFiresUTM.shp')
@@ -53,19 +53,7 @@ fires = gpd.read_file(os.path.abspath('Data/UTM36/ActiveFiresUTM.shp'))
 towns = gpd.read_file(os.path.abspath('Data/UTM36/Cyprus_Towns.shp'))
 
 """ Create Map"""
-
-
-# Work in progress. Copy Pasta exercise 2, to create fire map for cyprus instead of NI.
-# generate matplotlib handles to create a legend of the features we put in our map.
-def generate_handles(labels, colors, edge='k', alpha=1):
-    lc = len(colors)  # get the length of the color list
-    handles = []
-    for i in range(len(labels)):
-        handles.append(mpatches.Rectangle((0, 0), 1, 1, facecolor=colors[i % lc], edgecolor=edge, alpha=alpha))
-    return handles
-
-
-# create a scale bar of length 20 km in the upper right corner of the map
+# Create 50km alternating scale bar with label at each end
 # adapted this question: https://stackoverflow.com/q/32333870
 # answered by SO user Siyh: https://stackoverflow.com/a/35705477
 def scale_bar(ax, location=(0.5, 0.05)):
@@ -84,8 +72,12 @@ def scale_bar(ax, location=(0.5, 0.05)):
     ax.text(sbx, sby - 6000, '50 km', transform=ax.projection, fontsize=8)
     ax.text(sbx - 55000, sby - 6000, '0 km', transform=ax.projection, fontsize=8)
 
-
-# load the datasets
+def current_time():
+    # Function to dd the current date / time as a text box to the bottom right corner of the map
+    now = datetime.datetime.now()
+    date_str = now.strftime("Fire data downloaded on\n %Y-%m-%d at %H:%M:%S")
+    ax.text(0.75, 0.05, date_str, transform=ax.transAxes, ha='left', va='bottom', wrap=True,
+            bbox = dict(boxstyle="round", ec=('black'), fc=('white')))
 
 
 # create a figure of size 10x10 (representing the page size in inches)
@@ -224,19 +216,13 @@ leg = ax.legend(handles, labels, title='Legend', title_fontsize=12,
 # add the scale bar to the axis
 scale_bar(ax)
 
+# Add the date / time that the map was created.
+current_time()
+
 # save the figure as map.png, cropped to the axis (bbox_inches='tight'), and a dpi of 300
 myFig.savefig('LatestFireMap.png', bbox_inches='tight', dpi=300)
 
-# Folium Map Testing
-""" This will be used to create Folium interactive map at a later stage.
-folium.map.activeFires.explore('acq_date',
-                 m=m, # add the markers to the same map we just created
-                 marker_type='marker', # use a marker for the points, instead of a circle
-                 popup=True, # show the information as a popup when we click on the marker
-                 legend=False, # don't show a separate legend for the point layer
-                )
-m.save('NASA_Fire_Map.html') # export the folium fire map as a html which can be opened from windows explorer in the same folder as this python script
-"""
+
 
 """Create PDF Report"""
 
@@ -296,3 +282,14 @@ pdf.output('Daily_Fire_Report.pdf', 'F')
 """
 
 print("Script Complete.........")  # script complete
+
+# Folium Map Testing
+""" This will be used to create Folium interactive map at a later stage.
+folium.map.activeFires.explore('acq_date',
+                 m=m, # add the markers to the same map we just created
+                 marker_type='marker', # use a marker for the points, instead of a circle
+                 popup=True, # show the information as a popup when we click on the marker
+                 legend=False, # don't show a separate legend for the point layer
+                )
+m.save('NASA_Fire_Map.html') # export the folium fire map as a html
+"""
