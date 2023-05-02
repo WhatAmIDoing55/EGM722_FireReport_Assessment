@@ -1,5 +1,4 @@
 import os
-
 import cartopy.crs as ccrs
 import geopandas as gpd
 import matplotlib.lines as mlines
@@ -8,11 +7,10 @@ import pandas as pd
 from cartopy.feature import ShapelyFeature
 import datetime
 
-# import folium #saved for future use
-# import fpdf #saved for future use
+# import folium  #saved for future use
+# import fpdf  #saved for future use
 
-
-""" Fire Data """
+"""  Fire Data  """
 # SUOMI VIIRS - Last 7 days Europe
 snpp_url = 'https://firms.modaps.eosdis.nasa.gov/data/active_fire/suomi-npp-viirs-c2/csv/SUOMI_VIIRS_C2_Europe_7d.csv'
 
@@ -22,8 +20,8 @@ snpp_df = snpp_df[(snpp_df['latitude'] >= 34.5) & (snpp_df['latitude'] <= 36.0)]
 
 print(snpp_df.head())  # Print the head of the dataset to show it has been downloaded correctly
 
-""" FIRE GRAPH """
-# Create a graph to show number of fires per day
+"""  FIRE GRAPH  """
+#  Create a graph to show number of fires per day
 dates = snpp_df['acq_date'].value_counts().sort_index()  # Sort by date
 plt.plot(dates, color='red', marker='.', label='Fires')
 plt.title('Cyprus: Fire detected within the last 7 days', family='Arial', fontsize='14')
@@ -32,7 +30,7 @@ plt.ylabel('Number of Detections')
 plt.tick_params(axis='x', rotation=55)
 plt.savefig('FireGraph.png', bbox_inches='tight')
 
-# Create a new geodataframe for active fires
+#   Create a new geodataframe for active fires
 activeFires = gpd.GeoDataFrame(snpp_df[['acq_date', 'bright_ti4']],
                                # use the csv data, but only the name/website columns
                                geometry=gpd.points_from_xy(snpp_df['longitude'], snpp_df['latitude']),
@@ -40,27 +38,28 @@ activeFires = gpd.GeoDataFrame(snpp_df[['acq_date', 'bright_ti4']],
                                crs='epsg:4326')
 print(activeFires.head())  # print the head of the new activeFires geopandas dataframe to show it worked correctly
 
-# Reproject the Fire data from WGS 84 to UTM 36 North
+#  Reproject the Fire data from WGS 84 to UTM 36 North
 activeFires_UTM = activeFires.to_crs('epsg:32636')
 
-# Save activeFires_UTM as a shapefile
+#  Save activeFires_UTM as a shapefile
 activeFires_UTM.to_file(driver='ESRI Shapefile', filename='Data/UTM36/ActiveFiresUTM.shp')
 
-""" GIS DATA """
+"""  GIS DATA  """
 aoi = gpd.read_file(os.path.abspath('Data/UTM36/AOI.shp'))
 coastline = gpd.read_file(os.path.abspath('Data/UTM36/Island.shp'))
 fires = gpd.read_file(os.path.abspath('Data/UTM36/ActiveFiresUTM.shp'))
 towns = gpd.read_file(os.path.abspath('Data/UTM36/Cyprus_Towns.shp'))
 
-""" Create Map"""
-# Create 50km alternating scale bar with label at each end
-# adapted this question: https://stackoverflow.com/q/32333870
-# answered by SO user Siyh: https://stackoverflow.com/a/35705477
+"""  Create Map  """
+
+
+#  Function to create 50km alternating scale bar with label at each end
+#  adapted this question: https://stackoverflow.com/q/32333870
+#  answered by SO user Siyh: https://stackoverflow.com/a/35705477
 def scale_bar(ax, location=(0.5, 0.05)):
     x0, x1, y0, y1 = ax.get_extent()
     sbx = x0 + (x1 - x0) * location[0]
     sby = y0 + (y1 - y0) * location[1]
-
     ax.plot([sbx, sbx - 50000], [sby, sby], color='k', linewidth=9, transform=ax.projection)
     ax.plot([sbx, sbx - 40000], [sby, sby], color='k', linewidth=9, transform=ax.projection)
     ax.plot([sbx, sbx - 30000], [sby, sby], color='k', linewidth=9, transform=ax.projection)
@@ -72,49 +71,37 @@ def scale_bar(ax, location=(0.5, 0.05)):
     ax.text(sbx, sby - 6000, '50 km', transform=ax.projection, fontsize=8)
     ax.text(sbx - 55000, sby - 6000, '0 km', transform=ax.projection, fontsize=8)
 
+#  Function to dd the current date / time as a text box to the bottom right corner of the map
 def current_time():
-    # Function to dd the current date / time as a text box to the bottom right corner of the map
     now = datetime.datetime.now()
     date_str = now.strftime("Fire data downloaded on\n %Y-%m-%d at %H:%M:%S")
     ax.text(0.75, 0.05, date_str, transform=ax.transAxes, ha='left', va='bottom', wrap=True,
-            bbox = dict(boxstyle="round", ec=('black'), fc=('white')))
+            bbox=dict(boxstyle="round", ec=('black'), fc=('white')))
 
-
-# create a figure of size 10x10 (representing the page size in inches)
+# Create figure
 myFig = plt.figure(figsize=(10, 10), facecolor='0.7')
 
-myCRS = ccrs.epsg(32636)  # create a Universal Transverse Mercator reference system to transform our data.
-# epsg32636 is UTM Zone 36 North for Cyprus
+#  Coordinate Reference system = epsg 32636 / UTM Zone 36N
+myCRS = ccrs.epsg(32636)
 
+#  Create axis object (line arc map data frame) to plot data.
 ax = plt.axes(projection=myCRS,
-              facecolor='#effdff')  # finally, create an axes object in the figure, using a UTM projection,
-# where we can actually plot our data.
+              facecolor='#effdff')
 
+#  Add title
 plt.title('Active Fires in Cyprus: Last 7 Days')
 
-# first, we just add the outline of Northern Ireland using cartopy's ShapelyFeature
+#  Add AOI shapefile which is used for extent of the map
 outline_feature = ShapelyFeature(aoi['geometry'], myCRS, edgecolor='red', facecolor='#effdff')
 
+#  Boundary of map face from extent below
 xmin, ymin, xmax, ymax = aoi.total_bounds
 ax.add_feature(outline_feature)  # add the features we've created to the map.
 
-# using the boundary of the shapefile features, zoom the map to our area of interest
+#  Set extent of the map (AOI +/- 5000 metres)
 ax.set_extent([xmin - 5000, xmax + 5000, ymin - 5000, ymax + 5000], crs=myCRS)  # because total_bounds
-# gives output as xmin, ymin, xmax, ymax,
-# but set_extent takes xmin, xmax, ymin, ymax, we re-order the coordinates here.
 
-# pick colors, add features to the map
-# county_colors = ['firebrick', 'seagreen', 'royalblue', 'coral', 'violet', 'cornsilk']
-
-# get a list of unique names for the county boundaries
-# county_names = list(counties.CountyName.unique())
-# county_names.sort()  # sort the counties alphabetically by name
-
-# next, add the municipal outlines to the map using the colors that we've picked.
-# here, we're iterating over the unique values in the 'CountyName' field.
-# we're also setting the edge color to be black, with a line width of 0.5 pt.
-# Feel free to experiment with different colors and line widths.
-
+# Add Cyprus Coastline Feature
 feat = ShapelyFeature(coastline['geometry'],  # first argument is the geometry
                       myCRS,  # second argument is the CRS
                       edgecolor='k',  # outline the feature in black
@@ -123,11 +110,10 @@ feat = ShapelyFeature(coastline['geometry'],  # first argument is the geometry
                       alpha=1)  # set the alpha (transparency) to be 0.25 (out of 1)
 ax.add_feature(feat)  # once we have created the feature, we have to add it to the map using ax.add_feature()
 
-# Plot Towns
+#  Plot Towns
 ax.plot(towns.geometry.x, towns.geometry.y, '.', color='black', ms=4, transform=myCRS)
 
-# add the text labels for the towns
-
+#  Add the text labels for the towns
 for ind, row in towns.iterrows():  # towns.iterrows() returns the index and row
     x, y = row.geometry.x, row.geometry.y  # get the x,y location for each town
     ax.text(x + 1000, y + 1000, row['Name'].title(), fontsize=8,
@@ -136,93 +122,33 @@ for ind, row in towns.iterrows():  # towns.iterrows() returns the index and row
 # Add Fire Data to Map
 ax.plot(fires.geometry.x, fires.geometry.y, 's', color='red', ms=4, transform=myCRS)
 
-# Label Fires by date
+#  Label Fires by date
 for ind, row in fires.iterrows():  # towns.iterrows() returns the index and row
     x, y = row.geometry.x, row.geometry.y  # get the x,y location for each town
     ax.text(x + 1000, y + 1000, row['acq_date'].title(), fontsize=8, transform=myCRS)
 
-"""for ii, name in enumerate(county_names):
-    feat = ShapelyFeature(counties.loc[counties['CountyName'] == name, 'geometry'],  # first argument is the geometry
-                          myCRS,  # second argument is the CRS
-                          edgecolor='k',  # outline the feature in black
-                          facecolor=county_colors[ii],  # set the face color to the corresponding color from the list
-                          linewidth=1,  # set the outline width to be 1 pt
-                          alpha=0.25)  # set the alpha (transparency) to be 0.25 (out of 1)
-    ax.add_feature(feat)  # once we have created the feature, we have to add it to the map using ax.add_feature()
-"""
-# here, we're setting the edge color to be the same as the face color. Feel free to change this around,
-# and experiment with different line widths.
-"""water_feat = ShapelyFeature(water['geometry'],  # first argument is the geometry
-                            myCRS,  # second argument is the CRS
-                            edgecolor='mediumblue',  # set the edgecolor to be mediumblue
-                            facecolor='mediumblue',  # set the facecolor to be mediumblue
-                            linewidth=1)  # set the outline width to be 1 pt
-#ax.add_feature(water_feat)  # add the collection of features to the map
-
-#river_feat = ShapelyFeature(rivers['geometry'],  # first argument is the geometry
-                            myCRS,  # second argument is the CRS
-                            edgecolor='royalblue',  # set the edgecolor to be royalblue
-                            linewidth=0.2)  # set the linewidth to be 0.2 pt
-#ax.add_feature(river_feat)  # add the collection of features to the map
-
-# ShapelyFeature creates a polygon, so for point data we can just use ax.plot()
-#town_handle = ax.plot(towns.geometry.x, towns.geometry.y, 's', color='0.5', ms=6, transform=myCRS)
-
-# generate a list of handles for the county datasets
-#county_handles = generate_handles(counties.CountyName.unique(), county_colors, alpha=0.25)
-
-# note: if you change the color you use to display lakes, you'll want to change it here, too
-#water_handle = generate_handles(['Lakes'], ['mediumblue'])
-
-# note: if you change the color you use to display rivers, you'll want to change it here, too
-#river_handle = [mlines.Line2D([], [], color='royalblue')]  # have to make this a list
-
-# update county_names to take it out of uppercase text
-#nice_names = [name.title() for name in county_names]
-
-# ax.legend() takes a list of handles and a list of labels corresponding to the objects you want to add to the legend
-#handles = county_handles + water_handle + river_handle + town_handle
-#labels = nice_names + ['Lakes', 'Rivers', 'Towns']
-
-leg = ax.legend(handles, labels, title='Legend', title_fontsize=12,
-                fontsize=10, loc='upper left', frameon=True, framealpha=1)
-"""
+#  Add Graticule and labels
 gridlines = ax.gridlines(draw_labels=True,  # draw  labels for the grid lines
                          xlocs=[32, 32.5, 33, 33.5, 34, 34.5],  # add longitude lines at 0.5 deg intervals
                          ylocs=[34, 34.5, 35, 35.5, 36])  # add latitude lines at 0.5 deg intervals
-gridlines.left_labels = True  # turn off the left-side labels
-gridlines.bottom_labels = True  # turn off the bottom labels
 
+#  Add Fire Symbology to legend
 fire_legend = mlines.Line2D([0], [0], color='red', marker='s',
                             markersize=4, label='Fire', linewidth=0)
+#  Add Town Symbology to legend
 towns_legend = mlines.Line2D([], [], color='black', marker='.',
                              markersize=4, label='Towns', linewidth=0)
+#  Add legend text
 ax.legend([fire_legend, towns_legend], ['Fires', 'Towns'])
 
-"""
-# ax.legend() takes a list of handles and a list of labels corresponding to the objects you want to add to the legend
-handles = towns
-labels = ['Towns']
-
-leg = ax.legend(handles, labels, title='Legend', title_fontsize=12,
-                fontsize=10, loc='upper left', frameon=True, framealpha=1)
-"""
-# add the text labels for the towns
-"""
-#for ind, row in towns.iterrows():  # towns.iterrows() returns the index and row
-    x, y = row.geometry.x, row.geometry.y  # get the x,y location for each town
-    ax.text(x, y, row['TOWN_NAME'].title(), fontsize=8, transform=myCRS)  # use plt.text to place a label at x,y
-"""
-# add the scale bar to the axis
+#  Add the scale bar
 scale_bar(ax)
 
-# Add the date / time that the map was created.
+#  Add the date / time that the map was created
 current_time()
 
-# save the figure as map.png, cropped to the axis (bbox_inches='tight'), and a dpi of 300
+#  Save the map as a png
 myFig.savefig('LatestFireMap.png', bbox_inches='tight', dpi=300)
-
-
 
 """Create PDF Report"""
 
