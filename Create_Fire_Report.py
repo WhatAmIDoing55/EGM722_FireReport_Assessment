@@ -3,6 +3,7 @@ import cartopy.crs as ccrs
 import geopandas as gpd
 import matplotlib.lines as mlines
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 import pandas as pd
 from cartopy.feature import ShapelyFeature
 import datetime
@@ -113,7 +114,8 @@ ax = plt.axes(projection=myCRS,
 plt.title('Active Fires in Cyprus: Last 7 Days')
 
 #  Add AOI shapefile which is used for extent of the map
-outline_feature = ShapelyFeature(aoi['geometry'], myCRS, edgecolor='red', facecolor='#effdff')
+#  Line width set to '0' so that it does not show on map face
+outline_feature = ShapelyFeature(aoi['geometry'], myCRS, edgecolor='red', facecolor='#effdff', linewidth=0)
 
 #  Boundary of map face from extent below
 xmin, ymin, xmax, ymax = aoi.total_bounds
@@ -130,6 +132,10 @@ feat = ShapelyFeature(coastline['geometry'],  # first argument is the geometry
                       linewidth=0.5,  # set the outline width to be 1 pt
                       alpha=1)  # set the alpha (transparency) to be 0.25 (out of 1)
 ax.add_feature(feat)  # once we have created the feature, we have to add it to the map using ax.add_feature()
+
+#  Add Geofence to show areas where fires should not appear
+plot_geofence = ShapelyFeature(geofence['geometry'], myCRS, edgecolor='orange', facecolor='#effdff', linewidth=1)
+ax.add_feature(plot_geofence)
 
 #  Plot Towns
 ax.plot(towns.geometry.x, towns.geometry.y, '.', color='black', ms=4, transform=myCRS)
@@ -159,8 +165,12 @@ fire_legend = mlines.Line2D([0], [0], color='red', marker='s',
 #  Add Town Symbology to legend
 towns_legend = mlines.Line2D([], [], color='black', marker='.',
                              markersize=4, label='Towns', linewidth=0)
+
+#  Add Geofence to Legned to show areas where fire detections will not show on map
+geofence_legend = mpatches.Patch(facecolor='none', edgecolor = 'orange')
+
 #  Add legend text
-ax.legend([fire_legend, towns_legend], ['Fires', 'Towns'])
+ax.legend([fire_legend, towns_legend, geofence_legend], ['Fires', 'Towns', 'Geofence'])
 
 #  Add the scale bar
 scale_bar(ax)
