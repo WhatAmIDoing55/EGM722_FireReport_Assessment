@@ -21,7 +21,7 @@ geofence = gpd.read_file(os.path.abspath('Data/UTM36/geofence.shp'))
 # SUOMI VIIRS - Last 7 days Europe
 snpp_url = 'https://firms.modaps.eosdis.nasa.gov/data/active_fire/suomi-npp-viirs-c2/csv/SUOMI_VIIRS_C2_Europe_7d.csv'
 
-#  Test Data
+"""  Test Data   """
 #  If testing is required remove the '#' from the line below (26) and add '#' before the snpp_df on line 29. Then Run.
 #snpp_df = pd.read_csv('Test_Data/SUOMI_VIIRS_C2_Europe_7d (1).csv')
 
@@ -36,9 +36,7 @@ print(snpp_df.head())  # Print the head of the dataset to show it has been downl
 
 #   Create a new geodataframe for active fires
 all_Fires = gpd.GeoDataFrame(snpp_df[['acq_date', 'bright_ti4']],
-                             # use the csv data, but only the name/website columns
                              geometry=gpd.points_from_xy(snpp_df['longitude'], snpp_df['latitude']),
-                             # set the geometry using points_from_xy
                              crs='epsg:4326')
 print(all_Fires.head())  # print the head of the new activeFires geopandas dataframe to show it worked correctly
 
