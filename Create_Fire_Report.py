@@ -75,10 +75,6 @@ plt.savefig('FireGraph.png', bbox_inches='tight', dpi=100)
 
 """  Create Map  """
 #  Function to create 50km alternating scale bar with label at each end
-#  adapted this question: https://stackoverflow.com/q/32333870
-#  answered by SO user Siyh: https://stackoverflow.com/a/35705477
-
-
 def scale_bar(ax, location=(0.5, 0.05)):
     x0, x1, y0, y1 = ax.get_extent()
     sbx = x0 + (x1 - x0) * location[0]
@@ -94,9 +90,22 @@ def scale_bar(ax, location=(0.5, 0.05)):
     ax.text(sbx, sby - 6000, '50 km', transform=ax.projection, fontsize=8)
     ax.text(sbx - 55000, sby - 6000, '0 km', transform=ax.projection, fontsize=8)
 
-
 #  Function to dd the current date / time as a text box to the bottom right corner of the map
 def current_time():
+    """
+        Current Time Function:
+
+        This function return the current time in the bottom right hand corner of the map when the script is run.
+        This information is useful to be displayed as it lets the person looking at the fire map know when the data
+        was downloaded.
+
+        Parameters:
+        current_time()
+
+        Returns:
+        "Fire data downloaded on\n %Y-%m-%d at %H:%M:%S"
+        """
+
     now = datetime.datetime.now()
     date_str = now.strftime("Fire data downloaded on\n %Y-%m-%d at %H:%M:%S")
     ax.text(0.75, 0.05, date_str, transform=ax.transAxes, ha='left', va='bottom', wrap=True,
