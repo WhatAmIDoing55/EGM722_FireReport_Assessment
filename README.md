@@ -2,7 +2,7 @@
 Python script to create a Fire Report, for a local area, using NASA FIRMS Data.
 
 Current plan:
-- Use Reuqests to download nasa fire data ( probably csv )
+- Use Reuqests to download nasa fire data (csv)
 - Geo Geopandas to turn to point shapefile
 - Create 'Geofence' to remove detections which occour inside industrail areas / power stations
 - Use Maplotlib to create map and graphs to analyse data
