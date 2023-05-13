@@ -23,7 +23,7 @@ snpp_url = 'https://firms.modaps.eosdis.nasa.gov/data/active_fire/suomi-npp-viir
 
 """  Test Data   """
 #  If testing is required remove the '#' from the line below (26) and add '#' before the snpp_df on line 29. Then Run.
-#snpp_df = pd.read_csv('Test_Data/SUOMI_VIIRS_C2_Europe_7d (1).csv')
+#  snpp_df = pd.read_csv('Test_Data/SUOMI_VIIRS_C2_Europe_7d (1).csv')
 
 #  Create the snpp_df dataframe from the url
 snpp_df = pd.read_csv(snpp_url)
